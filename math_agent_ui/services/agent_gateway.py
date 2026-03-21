@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import random
-from datetime import datetime
 from typing import List, Optional
+
+from math_agent_backend.graph.workflow import run_workflow
 
 INTENT_KEYWORDS = {
     "clarification": ["clarify", "explain", "why", "how"],
@@ -12,9 +12,26 @@ INTENT_KEYWORDS = {
 
 
 def handle_user_query(user_input: str, context: Optional[str]) -> str:
-    response = _build_response(user_input, context)
-    timestamp = datetime.utcnow().strftime("%H:%M:%S UTC")
-    return f"{response}\n\n_Response generated at {timestamp}_"
+    backend_response = run_workflow(user_input)
+    response_type = backend_response.get("type", "error")
+    data = backend_response.get("data", {})
+
+    if response_type == "solve":
+        result_text = data.get("result", "No result returned.")
+        steps = data.get("steps", []) or []
+        steps_block = ""
+        if steps:
+            steps_block = "\n\nSteps:\n" + "\n".join(f"- {step}" for step in steps)
+        return f"{result_text}{steps_block}"
+
+    if response_type == "concept":
+        return data.get("explanation", "No explanation available.")
+
+    if response_type == "quiz":
+        return "Switch to the quiz tab to review the generated questions."
+
+    message = data.get("message") or backend_response.get("metadata", {}).get("error")
+    return message or "The assistant could not process your request."
 
 
 def detect_intent(user_input: str) -> str:
@@ -28,43 +45,13 @@ def detect_intent(user_input: str) -> str:
 def generate_quiz(topic: str, difficulty: str, num_questions: int) -> List[dict]:
     if num_questions <= 0:
         raise ValueError("Number of questions must be positive.")
+    prompt = f"Generate {num_questions} {difficulty} questions on {topic}"
+    backend_response = run_workflow(prompt)
+    if backend_response.get("type") != "quiz":
+        message = backend_response.get("data", {}).get("message", "Failed to generate quiz.")
+        raise ValueError(message)
 
-    questions: List[dict] = []
-    for idx in range(num_questions):
-        question_id = f"{topic.lower().replace(' ', '-')}-{idx + 1}"
-        question_text = f"({difficulty.title()}) {topic.title()} question {idx + 1}"
-        answer = f"Sample answer {idx + 1} for {topic}"
-        options = _build_options(answer) if idx % 2 == 0 else None
-        questions.append(
-            {
-                "id": question_id,
-                "question": question_text,
-                "answer": answer,
-                "options": options,
-            }
-        )
-    return questions
-
-
-def _build_response(user_input: str, context: Optional[str]) -> str:
-    baseline = f"You asked: '{user_input}'."
-    if context:
-        snippet = context[:200] + ("..." if len(context) > 200 else "")
-        return f"{baseline} Context was considered with excerpt: {snippet}"
-    hints = [
-        "Try breaking the problem into smaller steps.",
-        "Remember to double-check units.",
-        "Visualize the problem to gain intuition.",
-    ]
-    return f"{baseline} {random.choice(hints)}"
-
-
-def _build_options(answer: str) -> List[str]:
-    distractors = [
-        f"{answer} + 1",
-        f"{answer} - 1",
-        answer.replace("Sample", "Approximate"),
-    ]
-    options = distractors + [answer]
-    random.shuffle(options)
-    return options
+    quiz_payload = backend_response.get("data", {}).get("quiz")
+    if not isinstance(quiz_payload, list):
+        raise ValueError("Quiz payload missing or invalid.")
+    return quiz_payload
