@@ -10,13 +10,15 @@ logger = logging.getLogger(__name__)
 
 
 def solve_node(state: AgentState) -> AgentState:
-    logger.info("Running solve node")
-
     equation_text = state.get("normalized_input", "")
 
     try:
         solve_result = solver.solve_equation(equation_text)
-
+        logger.info(
+            "Solved equation | equation=%s | solution=%s",
+            equation_text,
+            solve_result.solution,
+        )
         return {
             **state,
             "result": solve_result.solution,
@@ -26,7 +28,7 @@ def solve_node(state: AgentState) -> AgentState:
         }
 
     except EquationParseError as e:
-        logger.error(f"Equation parse failed: {e}")
+        logger.error("Equation parse failed | equation=%s | error=%s", equation_text, e)
 
         return {
             **state,
@@ -36,7 +38,7 @@ def solve_node(state: AgentState) -> AgentState:
         }
 
     except Exception as e:
-        logger.error(f"Unexpected solve error: {e}")
+        logger.error("Unexpected solve error | equation=%s | error=%s", equation_text, e)
 
         return {
             **state,

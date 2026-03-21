@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import logging
+import time
+
 from langgraph.graph import END, START, StateGraph
 
 from .state import AgentState, INITIAL_STATE
 from ..nodes import concept, formatter, planner, quiz, router, solve, validator
+
+logger = logging.getLogger(__name__)
 
 
 def build_workflow() -> StateGraph[AgentState]:
@@ -78,14 +83,16 @@ def run_workflow(user_input: str) -> dict:
     """
     Entry point for executing the LangGraph workflow.
     """
+    logger.info("Workflow start | input=%s", user_input)
+    start_time = time.perf_counter()
+
     initial_state: AgentState = {
         **INITIAL_STATE,
         "user_input": user_input,
     }
 
     final_state = GRAPH.invoke(initial_state)
-
-    return final_state.get(
+    output = final_state.get(
         "output",
         {
             "type": "error",
@@ -93,3 +100,11 @@ def run_workflow(user_input: str) -> dict:
             "metadata": {"valid": False, "retries": 0},
         },
     )
+    duration_ms = (time.perf_counter() - start_time) * 1000
+    logger.info(
+        "Workflow completed | type=%s | retries=%s | duration_ms=%.2f",
+        output.get("type"),
+        final_state.get("retry_count", 0),
+        duration_ms,
+    )
+    return output
