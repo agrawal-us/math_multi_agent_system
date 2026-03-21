@@ -29,14 +29,17 @@ def render() -> None:
             DIFFICULTIES,
             index=default_index,
         )
-        num_questions = st.number_input(
-            "Number of questions",
-            min_value=1,
-            max_value=10,
-            value=int(config.get("num_questions", 3)),
+        num_questions = int(
+            st.number_input(
+                "Number of questions",
+                min_value=1,
+                max_value=10,
+                value=int(config.get("num_questions", 3)),
+            )
         )
         generate = st.form_submit_button("Generate quiz")
 
+    rerun_required = False
     if generate:
         session_state.set_status("quiz_generating")
         logger.info(
@@ -47,19 +50,28 @@ def render() -> None:
         )
         try:
             with st.spinner("Generating quiz..."):
-                questions = agent_gateway.generate_quiz(
-                    topic or "general math", difficulty, int(num_questions)
-                )
+                questions = agent_gateway.generate_quiz(topic, difficulty, num_questions)
             session_state.store_quiz_data(
-                {"topic": topic, "difficulty": difficulty, "num_questions": int(num_questions)},
+                {"topic": topic, "difficulty": difficulty, "num_questions": num_questions},
                 questions,
             )
             _reset_quiz_widgets()
+            quiz_state = session_state.get_quiz_state()
+            logger.debug(
+                "Quiz debug | requested=%s generated=%s stored=%s",
+                num_questions,
+                len(questions),
+                len(quiz_state.get("questions", [])),
+            )
+            rerun_required = True
         except Exception as exc:  # pragma: no cover
             session_state.set_error(f"Quiz generation failed: {exc}")
             logger.exception("Quiz generation failed")
         finally:
             session_state.set_status("idle")
+
+    if rerun_required:
+        st.rerun()
 
     if not quiz_state.get("questions"):
         st.info("Create a quiz to see questions here.")

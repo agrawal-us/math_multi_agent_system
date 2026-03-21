@@ -86,7 +86,7 @@ def _extract_quiz_entities(text: str) -> Tuple[str | None, str | None, int | Non
             difficulty = level
             break
 
-    count_match = re.search(r"(\d+)(?:\s+questions?)", lowered)
+    count_match = re.search(r"(\d+)(?:\s+(?:[a-z]+)\s+)?questions?", lowered)
     if count_match:
         num_questions = int(count_match.group(1))
 

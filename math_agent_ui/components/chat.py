@@ -63,3 +63,4 @@ def render() -> None:
             logger.exception("Chat request failed")
         finally:
             session_state.set_status("idle")
+        st.rerun()
