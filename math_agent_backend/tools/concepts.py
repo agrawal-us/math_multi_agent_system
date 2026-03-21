@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Dict
 
-import requests
+from .ollama import generate as ollama_generate, get_concept_model
 
 CONCEPT_KB: Dict[str, Dict[str, str]] = {
     "derivative": {
@@ -20,8 +20,6 @@ CONCEPT_KB: Dict[str, Dict[str, str]] = {
     },
 }
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "qwen2.5:7b"
 PROMPT_TEMPLATE = (
     "You are a math tutor. Explain the mathematical concept '{topic}' clearly and briefly. "
     "Avoid finance or non-math meanings unless explicitly asked. "
@@ -51,11 +49,7 @@ def fetch_concept(topic: str) -> Dict[str, str]:
 
 def _query_ollama(topic: str) -> Dict[str, str] | None:
     prompt = PROMPT_TEMPLATE.format(topic=topic)
-    payload = {"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}
-    response = requests.post(OLLAMA_URL, json=payload, timeout=60)
-    response.raise_for_status()
-    data = response.json()
-    text = (data.get("response") or "").strip()
+    text = ollama_generate(prompt, model=get_concept_model())
     if not text:
         return None
     explanation, example = _parse_response(text)
