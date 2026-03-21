@@ -49,7 +49,9 @@ def fetch_concept(topic: str) -> Dict[str, str]:
 
 def _query_ollama(topic: str) -> Dict[str, str] | None:
     prompt = PROMPT_TEMPLATE.format(topic=topic)
-    text = ollama_generate(prompt, model=get_concept_model())
+    model = get_concept_model()
+    logger.info("Concept query | topic=%s | model=%s", topic, model)
+    text = ollama_generate(prompt, model=model)
     if not text:
         return None
     explanation, example = _parse_response(text)

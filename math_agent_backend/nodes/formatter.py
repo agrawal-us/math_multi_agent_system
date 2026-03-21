@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import logging
+
 from ..graph.state import AgentState
+
+logger = logging.getLogger(__name__)
 
 
 def formatter_node(state: AgentState) -> AgentState:
@@ -23,4 +27,10 @@ def formatter_node(state: AgentState) -> AgentState:
 
     next_state = {**state}
     next_state["output"] = {"type": response_type, "data": data, "metadata": metadata}
+    logger.info(
+        "Formatter output | type=%s | valid=%s | retries=%s",
+        response_type,
+        metadata["valid"],
+        metadata["retries"],
+    )
     return next_state
