@@ -3,6 +3,10 @@ from __future__ import annotations
 import random
 from typing import Dict, List, Tuple
 
+from .ollama import get_quiz_model
+
+QUIZ_MODEL = get_quiz_model()
+
 TOPIC_SYNONYMS = {
     "derivatives": "derivative",
     "derivative": "derivative",
