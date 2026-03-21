@@ -50,10 +50,12 @@ def render() -> None:
         )
         try:
             with st.spinner("Generating quiz..."):
-                questions = agent_gateway.generate_quiz(topic, difficulty, num_questions)
+                quiz_result = agent_gateway.generate_quiz(topic, difficulty, num_questions)
+            questions = quiz_result["questions"]
             session_state.store_quiz_data(
                 {"topic": topic, "difficulty": difficulty, "num_questions": num_questions},
                 questions,
+                trace=quiz_result.get("trace"),
             )
             _reset_quiz_widgets()
             quiz_state = session_state.get_quiz_state()
@@ -72,6 +74,10 @@ def render() -> None:
 
     if rerun_required:
         st.rerun()
+
+    if quiz_state.get("last_trace"):
+        with st.expander("Quiz generation trace", expanded=False):
+            st.json(quiz_state["last_trace"])
 
     if not quiz_state.get("questions"):
         st.info("Create a quiz to see questions here.")

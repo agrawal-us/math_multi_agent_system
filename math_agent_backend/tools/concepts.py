@@ -40,10 +40,15 @@ def fetch_concept(topic: str) -> Dict[str, str]:
         logger.warning("Ollama concept generation failed: %s", exc)
 
     if key in CONCEPT_KB:
-        return CONCEPT_KB[key]
+        return {
+            **CONCEPT_KB[key],
+            "source": "kb",
+        }
+
     return {
         "explanation": f"{topic.title()} is a mathematical concept needing further elaboration.",
         "example": f"Example: Provide a concrete instance of {topic} in practice.",
+        "source": "generic_fallback",
     }
 
 
@@ -60,6 +65,7 @@ def _query_ollama(topic: str) -> Dict[str, str] | None:
     return {
         "explanation": explanation or f"{topic.title()} is a mathematical concept requiring explanation.",
         "example": example or f"Example: Consider a basic scenario featuring {topic}.",
+        "source": "ollama",
     }
 
 
