@@ -25,6 +25,22 @@ def render() -> None:
             st.markdown(entry["message"])
             if entry["context_used"]:
                 st.caption("Context attached")
+            if entry.get("request_id"):
+                st.caption(f"Request ID: {entry['request_id']}")
+            trace = entry.get("trace")
+            if trace:
+                with st.expander("Request trace", expanded=False):
+                    st.json(
+                        {
+                            "status": trace.get("status"),
+                            "intent": trace.get("intent"),
+                            "route_selected": trace.get("route_selected"),
+                            "retry_count": trace.get("retry_count"),
+                            "duration_ms": trace.get("duration_ms"),
+                            "validation": trace.get("validation"),
+                            "events": trace.get("events", []),
+                        }
+                    )
 
     with st.form("chat_form", clear_on_submit=True):
         default_use_context = chat_state.get("use_context", True) and bool(context_state.get("text"))
@@ -48,6 +64,7 @@ def render() -> None:
         session_state.set_last_intent(intent)
         session_state.add_chat_message("user", message, context_used=use_context)
         context_text = context_state.get("text") if use_context else None
+
         logger.info(
             "Chat request submitted | intent=%s context_used=%s message_length=%s",
             intent,
@@ -57,7 +74,15 @@ def render() -> None:
         try:
             with st.spinner("Generating response..."):
                 response = agent_gateway.handle_user_query(message, context_text)
-            session_state.add_chat_message("agent", response, context_used=use_context)
+            session_state.add_chat_message(
+                "agent",
+                response["display_text"],
+                context_used=use_context,
+                request_id=response.get("metadata", {}).get("request_id"),
+                metadata=response.get("metadata"),
+                trace=response.get("trace"),
+            )
+            session_state.set_last_trace(response.get("trace"))
         except Exception as exc:  # pragma: no cover - defensive
             session_state.set_error(f"Chat failed: {exc}")
             logger.exception("Chat request failed")

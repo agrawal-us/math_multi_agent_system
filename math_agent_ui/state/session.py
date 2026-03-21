@@ -25,12 +25,14 @@ DEFAULT_STATE: Dict[str, Any] = {
         "history": [],
         "last_intent": None,
         "use_context": True,
+        "last_trace": None,
     },
     "quiz": {
         "config": {"topic": "", "difficulty": "medium", "num_questions": 3},
         "questions": [],
         "responses": {},
         "score": None,
+        "last_trace": None,
     },
     "ui": {"status": "idle", "error": None},
 }
@@ -66,12 +68,22 @@ def get_chat_state() -> Dict[str, Any]:
     return st.session_state["chat"]
 
 
-def add_chat_message(role: str, message: str, context_used: bool) -> None:
+def add_chat_message(
+    role: str,
+    message: str,
+    context_used: bool,
+    request_id: str | None = None,
+    metadata: dict | None = None,
+    trace: dict | None = None,
+) -> None:
     entry = {
         "role": role,
         "message": message,
         "timestamp": datetime.utcnow().isoformat(),
         "context_used": context_used,
+        "request_id": request_id,
+        "metadata": metadata or {},
+        "trace": trace,
     }
     chat_state = get_chat_state()
     history = [*chat_state.get("history", []), entry]
@@ -88,11 +100,16 @@ def set_last_intent(intent: str) -> None:
     st.session_state["chat"] = {**chat_state, "last_intent": intent}
 
 
+def set_last_trace(trace: dict | None) -> None:
+    chat_state = get_chat_state()
+    st.session_state["chat"] = {**chat_state, "last_trace": trace}
+
+
 def get_quiz_state() -> Dict[str, Any]:
     return st.session_state["quiz"]
 
 
-def store_quiz_data(config: Dict[str, Any], questions: list) -> None:
+def store_quiz_data(config: Dict[str, Any], questions: list, trace: dict | None = None) -> None:
     quiz_state = get_quiz_state()
     st.session_state["quiz"] = {
         **quiz_state,
@@ -100,6 +117,7 @@ def store_quiz_data(config: Dict[str, Any], questions: list) -> None:
         "questions": questions,
         "responses": {},
         "score": None,
+        "last_trace": trace,
     }
 
 

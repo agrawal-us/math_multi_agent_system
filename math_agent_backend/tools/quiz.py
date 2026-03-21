@@ -124,6 +124,31 @@ def generate_quiz(topic: str, difficulty: str, num_questions: int) -> List[Dict[
     return questions
 
 
+def generate_quiz_with_diagnostics(topic: str, difficulty: str, num_questions: int) -> tuple[list[dict], dict]:
+    requested_topic = topic
+    normalized_topic = _normalize_topic(topic)
+    bank = TOPIC_BANK.get(normalized_topic)
+    fallback_topic_used = False
+    if not bank:
+        bank = TOPIC_BANK.get("algebra")
+        normalized_topic = "algebra"
+        fallback_topic_used = True
+
+    effective_difficulty = difficulty if difficulty in bank else "medium"
+    questions = generate_quiz(topic, difficulty, num_questions)
+
+    diagnostics = {
+        "requested_topic": requested_topic,
+        "normalized_topic": normalized_topic,
+        "fallback_topic_used": fallback_topic_used,
+        "requested_difficulty": difficulty,
+        "effective_difficulty": effective_difficulty,
+        "num_questions_requested": num_questions,
+        "num_questions_generated": len(questions),
+    }
+    return questions, diagnostics
+
+
 def validate_quiz_structure(quiz: List[Dict[str, object]]) -> bool:
     if not quiz:
         return False
