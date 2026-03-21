@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 def concept_node(state: AgentState) -> AgentState:
     topic = state.get("topic") or state.get("normalized_input") or "mathematics"
     concept = fetch_concept(topic)
-    explanation = f"{concept['explanation']}\n{concept['example']}"
+    example_text = concept.get("example", "")
+    if example_text and not example_text.lower().startswith("example"):
+        example_text = f"Example: {example_text}"
+    explanation = f"{concept.get('explanation', '').strip()}\n{example_text.strip()}".strip()
     logger.info("Concept explanation prepared for topic='%s'", topic)
     next_state = {**state}
     next_state.update(
