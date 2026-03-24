@@ -12,11 +12,28 @@ def send_message(payload: ChatMessageRequest) -> ChatMessageResponse:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Message cannot be empty.")
 
     workflow_output = process_chat_message(payload.message)
+    response_type = workflow_output.get("type", "error")
+    data = workflow_output.get("data", {})
+
+    if response_type == "solve":
+        result = data.get("result")
+        steps = data.get("steps", [])
+        steps_text = "\n".join(str(step) for step in steps if step)
+        content = f"Result: {result}"
+        if steps_text:
+            content = f"{content}\nSteps:\n{steps_text}"
+    elif response_type == "concept":
+        content = str(data.get("explanation") or "No response")
+    elif response_type == "quiz":
+        quiz_items = data.get("quiz", [])
+        content = f"Quiz generated with {len(quiz_items)} question(s)."
+    else:
+        content = str(data.get("message") or "No response")
+
     return ChatMessageResponse(
         session_id=payload.session_id or 0,
-        response_type=workflow_output.get("type", "error"),
-        content=workflow_output.get("data", {}).get("response")
-        or workflow_output.get("data", {}).get("message", "No response"),
+        response_type=response_type,
+        content=content,
         metadata=workflow_output.get("metadata", {}),
     )
 

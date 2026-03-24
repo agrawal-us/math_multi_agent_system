@@ -19,3 +19,13 @@ def register(payload: RegisterRequest) -> TokenResponse:
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail=f"Register scaffold only. Received {payload.email}.",
     )
+
+
+@router.get("/me")
+def me() -> dict:
+    return {
+        "id": "scaffold-user",
+        "email": "scaffold@example.com",
+        "authenticated": False,
+        "todo": "Implement authenticated user lookup.",
+    }
